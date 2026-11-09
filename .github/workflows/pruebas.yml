@@ -1,0 +1,16 @@
+name: Verificacion de desarrollo
+on:
+  push:
+  pull_request:
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Pruebas unitarias
+        run: python -m unittest discover -s tests -v
+      - name: Piloto y conciliacion
+        run: python -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados
