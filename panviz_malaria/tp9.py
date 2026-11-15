@@ -14,6 +14,7 @@ from .validacion import fecha_iso
 REQUERIDOS = ("id_registro", "distrito", "fecha_notificacion", "grupo_etario")
 COLUMNAS = (*REQUERIDOS, "estado_validacion")
 CLAVES_RESUMEN = ("distrito", "grupo_etario")
+GRUPOS_ETARIOS = frozenset({"ADULTO_MAYOR", "INFANTIL"})
 
 
 def validar_tp9(filas):
@@ -42,6 +43,8 @@ def motivo_rechazo(fila, identificadores):
         fecha_iso(fila["fecha_notificacion"])
     except ValueError:
         return "FECHA_INVALIDA"
+    if fila["grupo_etario"] not in GRUPOS_ETARIOS:
+        return "GRUPO_ETARIO_INVALIDO"
     if fila["id_registro"] in identificadores:
         return "DUPLICADO"
     return None

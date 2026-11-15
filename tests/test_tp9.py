@@ -18,6 +18,7 @@ from panviz_malaria.tp9 import (
 
 RAIZ = Path(__file__).resolve().parents[1]
 DATOS = RAIZ / "datos" / "malaria_tp9_30.csv"
+DATOS_T11 = RAIZ / "tests" / "fixtures" / "tp9_grupo_fuera_catalogo.csv"
 
 
 class IncrementoTP9Test(unittest.TestCase):
@@ -125,6 +126,21 @@ class IncrementoTP9Test(unittest.TestCase):
         self.assertEqual(proceso.returncode, 0, proceso.stderr)
         self.assertEqual(cargar_publicado(self.conexion), resumir(borrador))
         self.assertIn("publicador | PUBLICADA", self.cli("bitacora").stdout)
+
+    def test_t11_rechaza_grupo_etario_fuera_del_catalogo_tp9(self):
+        proceso = self.cli("importar", str(DATOS_T11))
+        self.assertEqual(proceso.returncode, 0, proceso.stderr)
+        estado = cargar_borrador(self.conexion)
+        self.assertEqual(estado["leidos"], 3)
+        self.assertEqual(
+            [(fila["id_registro"], fila["motivo"]) for fila in estado["rechazados"]],
+            [("T11-001", "GRUPO_ETARIO_INVALIDO")],
+        )
+        self.assertEqual(
+            [(fila["id_registro"], fila["grupo_etario"]) for fila in estado["aceptados"]],
+            [("T11-002", "INFANTIL"), ("T11-003", "ADULTO_MAYOR")],
+        )
+        self.assertNotIn("DESCONOCIDO", self.cli("resumen").stdout)
 
     def test_csv_malformado_no_sustituye_el_borrador(self):
         anterior = importar(self.conexion, DATOS)

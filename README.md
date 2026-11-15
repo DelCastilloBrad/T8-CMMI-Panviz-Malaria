@@ -28,7 +28,10 @@ resumen general contiene **cuatro grupos de seis** (CHIVAY y MIRAFLORES
 × ADULTO_MAYOR e INFANTIL). La consulta por MIRAFLORES muestra **dos grupos
 y 12 casos**. La tabla de rechazos indica la fila del CSV, el ID y la causa:
 dos campos vacíos, dos fechas inválidas y dos ID duplicados. El programa
-calcula el estado de validación al importar.
+calcula el estado de validación al importar. El catálogo TP9 admite
+`INFANTIL` y `ADULTO_MAYOR`; otro grupo se rechaza con
+`GRUPO_ETARIO_INVALIDO`. Para aplicar la regla a un borrador previo,
+vuelve a importar su CSV.
 
 Cada importación válida reemplaza el borrador completo. Al repetirla, se
 conserva el mismo conjunto. Los comandos posteriores recuperan el estado
@@ -50,10 +53,34 @@ python -m unittest discover -s tests -v
 ```
 
 La primera orden ejecuta las comprobaciones automatizadas asociadas a
-TP9-T01–T08 y un caso adicional de integridad del borrador. T03 y T04
-comprueban el máximo de tres repeticiones contra el umbral de 2 segundos.
-Los escenarios restantes del plan de 12 pruebas se registran en la
-evaluación del TP9.
+TP9-T01–T08, TP9-T11 y un caso adicional de integridad del borrador. T03 y
+T04 comprueban el máximo de tres repeticiones contra el umbral de 2 segundos.
+TP9-T09 y TP9-T10 se miden con un usuario simulado.
+
+### TP9-T11 Validación del catálogo etario
+
+El caso usa un CSV de tres filas, dos con grupos del catálogo y una con
+`DESCONOCIDO`. En la versión inicial
+[`b069856`](https://github.com/DelCastilloBrad/T8-CMMI-Panviz-Malaria/commit/b06985641c68009b7e3c400d4146ee624bf988c8)
+se aceptaron las tres y el grupo desconocido apareció en el resumen.
+Tras el cambio se aceptaron dos y se rechazó la fila `T11-001` con
+`GRUPO_ETARIO_INVALIDO`. El resumen final mostró dos casos, uno por
+cada grupo del catálogo.
+
+```sh
+python -m panviz_malaria.tp9 --estado resultados/t11.sqlite3 importar tests/fixtures/tp9_grupo_fuera_catalogo.csv
+python -m panviz_malaria.tp9 --estado resultados/t11.sqlite3 rechazos
+python -m panviz_malaria.tp9 --estado resultados/t11.sqlite3 resumen
+python -m unittest discover -s tests -p test_tp9.py -k t11 -v
+```
+
+### TP9-T12 Regresión
+
+Se volvió a ejecutar la suite completa con `python -m unittest discover -s tests -v`.
+En Linux con Python 3.12.14 pasaron 21 pruebas (11 del TP8 y 10 del TP9).
+Al comparar la salida de ambos commits con el CSV original de 30 filas,
+coincidieron los totales, la lista de rechazos, los cuatro grupos de seis
+y los 12 casos de MIRAFLORES.
 
 ## Ejecución en Windows (PowerShell o CMD)
 
