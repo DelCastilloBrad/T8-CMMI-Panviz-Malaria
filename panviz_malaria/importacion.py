@@ -11,7 +11,7 @@ COLUMNAS = (
 class ErrorContrato(ValueError):
     """El archivo no cumple el contrato de entrada."""
 
-def leer_csv(ruta):
+def leer_csv(ruta, *, columnas=COLUMNAS):
     """Devuelve [(número de línea física, fila)] sin modificar la fuente."""
     ruta = Path(ruta)
     try:
@@ -19,7 +19,7 @@ def leer_csv(ruta):
             lector = csv.DictReader(archivo)
             if lector.fieldnames is None:
                 raise ErrorContrato("CSV sin encabezado")
-            faltantes = sorted(set(COLUMNAS) - set(lector.fieldnames))
+            faltantes = sorted(set(columnas) - set(lector.fieldnames))
             if faltantes:
                 raise ErrorContrato("Columnas faltantes: " + ", ".join(faltantes))
             if len(lector.fieldnames) != len(set(lector.fieldnames)):

@@ -5,6 +5,56 @@ Componente académico independiente de importación, validación, consolidación
 ## Requisitos
 Python 3.10+; ejecución y pruebas sin paquetes externos.
 
+## Incremento TP9
+
+Desde la raíz del repositorio, ejecuta estos comandos. En Linux puedes usar
+`python3` y en Windows, `py`, si `python` no está disponible.
+
+```sh
+python -m panviz_malaria.tp9 importar datos/malaria_tp9_30.csv
+python -m panviz_malaria.tp9 rechazos
+python -m panviz_malaria.tp9 resumen
+python -m panviz_malaria.tp9 resumen --distrito MIRAFLORES
+python -m panviz_malaria.tp9 publicado
+python -m panviz_malaria.tp9 publicar --rol revisor
+python -m panviz_malaria.tp9 publicado
+python -m panviz_malaria.tp9 publicar --rol publicador
+python -m panviz_malaria.tp9 publicado
+python -m panviz_malaria.tp9 bitacora
+```
+
+La importación lee **30 filas sintéticas**, acepta **24** y rechaza **6**. El
+resumen general contiene **cuatro grupos de seis** (CHIVAY y MIRAFLORES
+× ADULTO_MAYOR e INFANTIL). La consulta por MIRAFLORES muestra **dos grupos
+y 12 casos**. La tabla de rechazos indica la fila del CSV, el ID y la causa:
+dos campos vacíos, dos fechas inválidas y dos ID duplicados. El programa
+calcula el estado de validación al importar.
+
+Cada importación válida reemplaza el borrador completo. Al repetirla, se
+conserva el mismo conjunto. Los comandos posteriores recuperan el estado
+desde `resultados/tp9.sqlite3`. Para una demostración con estado nuevo, usa
+`--estado resultados/demo-tp9.sqlite3` **antes** del subcomando en cada línea
+y elige una ruta que aún no exista.
+
+El rol `revisor` recibe una denegación (código de salida 3) y el resumen
+publicado queda intacto. El rol `publicador` guarda el resumen como una
+publicación independiente del borrador. La bitácora registra ambos resultados
+en UTC. Los roles se eligen en la consola para simular el permiso. El alcance
+es local y el prototipo carece de autenticación de usuarios.
+
+Pruebas de desarrollo del TP9 y regresión del TP8:
+
+```sh
+python -m unittest discover -s tests -p test_tp9.py -v
+python -m unittest discover -s tests -v
+```
+
+La primera orden ejecuta las comprobaciones automatizadas asociadas a
+TP9-T01–T08 y un caso adicional de integridad del borrador. T03 y T04
+comprueban el máximo de tres repeticiones contra el umbral de 2 segundos.
+Los escenarios restantes del plan de 12 pruebas se registran en la
+evaluación del TP9.
+
 ## Ejecución en Windows (PowerShell o CMD)
 
 Con **Python 3.10+** y **Git** instalados, ejecutar desde la terminal:
