@@ -3,9 +3,9 @@ from collections import Counter
 
 CLAVES = ("semana_iso", "establecimiento", "distrito", "grupo_etario")
 
-def consolidar(aceptados):
-    conteo = Counter(tuple(fila[clave] for clave in CLAVES) for fila in aceptados)
-    return [dict(zip(CLAVES, clave), casos=conteo[clave]) for clave in sorted(conteo)]
+def consolidar(aceptados, *, claves=CLAVES):
+    conteo = Counter(tuple(fila[clave] for clave in claves) for fila in aceptados)
+    return [dict(zip(claves, clave), casos=conteo[clave]) for clave in sorted(conteo)]
 
 def filtrar_distrito(consolidado, distrito):
     """CR01: filtrar grupos consolidados sin modificar el resultado general."""

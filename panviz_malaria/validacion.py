@@ -4,6 +4,12 @@ from datetime import date
 REQUERIDOS = ("id_registro", "fecha_notificacion", "establecimiento",
               "evento", "distrito", "edad", "tipo_edad")
 
+def fecha_iso(valor):
+    fecha = date.fromisoformat(valor)
+    if fecha.isoformat() != valor:
+        raise ValueError("fecha no canónica")
+    return fecha
+
 def grupo_etario(edad, tipo):
     """G1 0–4; G2 5–14; G3 15–29; G4 30–59; G5 60+ (años equivalentes)."""
     if tipo not in {"A", "M", "D"}:
@@ -40,10 +46,7 @@ def validar(filas):
             motivo = "DUPLICADO"
         if motivo is None:
             try:
-                fecha = date.fromisoformat(fila["fecha_notificacion"])
-                # No se aceptan fechas no canónicas, aunque date.fromisoformat sea permisivo.
-                if fecha.isoformat() != fila["fecha_notificacion"]:
-                    raise ValueError("fecha no canónica")
+                fecha = fecha_iso(fila["fecha_notificacion"])
             except ValueError:
                 motivo = "FECHA_INVALIDA"
         if motivo is None:
