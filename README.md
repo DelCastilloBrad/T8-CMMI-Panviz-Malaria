@@ -1,225 +1,49 @@
-# Panviz–Malaria — piloto CMMI-DEV v1.3
+# PANVIZ Malaria
 
-Componente académico independiente de importación, validación, consolidación y exportación de notificaciones **sintéticas** de malaria. Se diseñó tomando como referencia conceptual el producto inicial ISPySA-Pneumonia, pero sin trasladar su modelo predictivo de IRAS. No procesa casos reales ni realiza diagnóstico.
+Prototipo académico de vigilancia epidemiológica con datos sintéticos. El **TP9** permite importar y validar un CSV, consultar los rechazos, consolidar los registros aceptados por distrito y grupo etario, y publicar un resumen con roles locales simulados. El **TP8** conserva el flujo original de conciliación y exportación a CSV y JSON.
 
-## Requisitos
-Python 3.10+; ejecución y pruebas sin paquetes externos.
+## Pruebas
 
-## Incremento TP9
+Desde la raíz de la rama `tp9-incremento`, con **Python 3.10 o posterior**. El proyecto usa la biblioteca estándar. Según el sistema, el comando puede ser `python`, `python3` o `py`.
 
-Desde la raíz del repositorio, ejecuta estos comandos. En Linux puedes usar
-`python3` y en Windows, `py`, si `python` no está disponible.
+| Alcance | Comando | Resultado esperado |
+| --- | --- | --- |
+| Suite completa y regresión T12 | `python -m unittest discover -s tests -v` | 21 comprobaciones correctas, 11 del TP8 y 10 del TP9. |
+| Comprobaciones del TP9 | `python -m unittest discover -s tests -p test_tp9.py -v` | 10 comprobaciones correctas. Cubre T01–T08, T11 y la conservación del borrador ante un CSV malformado. |
+| Regla del catálogo etario T11 | `python -m unittest discover -s tests -p test_tp9.py -k t11 -v` | Rechaza el grupo fuera del catálogo y conserva los dos válidos. |
 
-```sh
-python -m panviz_malaria.tp9 importar datos/malaria_tp9_30.csv
-python -m panviz_malaria.tp9 rechazos
-python -m panviz_malaria.tp9 resumen
-python -m panviz_malaria.tp9 resumen --distrito MIRAFLORES
-python -m panviz_malaria.tp9 publicado
-python -m panviz_malaria.tp9 publicar --rol revisor
-python -m panviz_malaria.tp9 publicado
-python -m panviz_malaria.tp9 publicar --rol publicador
-python -m panviz_malaria.tp9 publicado
-python -m panviz_malaria.tp9 bitacora
-```
+T01–T08 comprueban validación, consolidación, tiempos de operación, persistencia y publicación protegida. **T09 y T10 son manuales**. El usuario simulado corrige un registro rechazado en una copia del CSV y verifica la reimportación en T09. En T10 localiza el resumen del distrito asignado. Cada tarea se cronometra por separado, con un límite de 90 segundos y sin ayuda del desarrollador. La sintaxis de la interfaz se puede consultar con `python -m panviz_malaria.tp9 --help`.
 
-La importación lee **30 filas sintéticas**, acepta **24** y rechaza **6**. El
-resumen general contiene **cuatro grupos de seis** (CHIVAY y MIRAFLORES
-× ADULTO_MAYOR e INFANTIL). La consulta por MIRAFLORES muestra **dos grupos
-y 12 casos**. La tabla de rechazos indica la fila del CSV, el ID y la causa:
-dos campos vacíos, dos fechas inválidas y dos ID duplicados. El programa
-calcula el estado de validación al importar. El catálogo TP9 admite
-`INFANTIL` y `ADULTO_MAYOR`; otro grupo se rechaza con
-`GRUPO_ETARIO_INVALIDO`. Para aplicar la regla a un borrador previo,
-vuelve a importar su CSV.
+La pestaña [Actions](https://github.com/DelCastilloBrad/T8-CMMI-Panviz-Malaria/actions/workflows/pruebas.yml) muestra las ejecuciones de la suite y la conciliación del piloto TP8.
 
-Cada importación válida reemplaza el borrador completo. Al repetirla, se
-conserva el mismo conjunto. Los comandos posteriores recuperan el estado
-desde `resultados/tp9.sqlite3`. Para una demostración con estado nuevo, usa
-`--estado resultados/demo-tp9.sqlite3` **antes** del subcomando en cada línea
-y elige una ruta que aún no exista.
+## Demostración del TP9
 
-El rol `revisor` recibe una denegación (código de salida 3) y el resumen
-publicado queda intacto. El rol `publicador` guarda el resumen como una
-publicación independiente del borrador. La bitácora registra ambos resultados
-en UTC. Los roles se eligen en la consola para simular el permiso. El alcance
-es local y el prototipo carece de autenticación de usuarios.
-
-Pruebas de desarrollo del TP9 y regresión del TP8:
+Los comandos comparten una base SQLite. Para una demostración desde cero, elige una ruta de estado nueva.
 
 ```sh
-python -m unittest discover -s tests -p test_tp9.py -v
-python -m unittest discover -s tests -v
+python -m panviz_malaria.tp9 --estado resultados/demo-tp9.sqlite3 importar datos/malaria_tp9_30.csv
+python -m panviz_malaria.tp9 --estado resultados/demo-tp9.sqlite3 rechazos
+python -m panviz_malaria.tp9 --estado resultados/demo-tp9.sqlite3 resumen
 ```
 
-La primera orden ejecuta las comprobaciones automatizadas asociadas a
-TP9-T01–T08, TP9-T11 y un caso adicional de integridad del borrador. T03 y
-T04 comprueban el máximo de tres repeticiones contra el umbral de 2 segundos.
-TP9-T09 y TP9-T10 se miden con un usuario simulado.
+La muestra tiene **30 filas**. Se esperan **24 aceptadas, 6 rechazadas y 4 grupos de 6**. La consulta de rechazos muestra la fila, el ID y el motivo. Para un distrito, añade `--distrito NOMBRE_DEL_DISTRITO` después de `resumen`. Cada importación reemplaza el borrador y las consultas posteriores recuperan ese estado desde SQLite.
 
-### TP9-T11 Validación del catálogo etario
+| Operación de publicación | Subcomando | Resultado |
+| --- | --- | --- |
+| Publicar el borrador | `publicar --rol publicador` | Guarda una publicación separada del borrador. |
+| Intentar publicar como revisor | `publicar --rol revisor` | Devuelve código 3 y conserva la publicación. |
+| Consultar la publicación y su historial | `publicado` y `bitacora` | Muestra el resumen publicado y los resultados de los intentos de publicación. |
 
-El caso usa un CSV de tres filas, dos con grupos del catálogo y una con
-`DESCONOCIDO`. En la versión inicial
-[`b069856`](https://github.com/DelCastilloBrad/T8-CMMI-Panviz-Malaria/commit/b06985641c68009b7e3c400d4146ee624bf988c8)
-se aceptaron las tres y el grupo desconocido apareció en el resumen.
-Tras el cambio se aceptaron dos y se rechazó la fila `T11-001` con
-`GRUPO_ETARIO_INVALIDO`. El resumen final mostró dos casos, uno por
-cada grupo del catálogo.
+Para probar estas operaciones, usa el mismo prefijo de los ejemplos, `python -m panviz_malaria.tp9 --estado resultados/demo-tp9.sqlite3`. Los roles elegidos en la consola simulan el control de permisos en el prototipo local.
+
+## Piloto TP8
 
 ```sh
-python -m panviz_malaria.tp9 --estado resultados/t11.sqlite3 importar tests/fixtures/tp9_grupo_fuera_catalogo.csv
-python -m panviz_malaria.tp9 --estado resultados/t11.sqlite3 rechazos
-python -m panviz_malaria.tp9 --estado resultados/t11.sqlite3 resumen
-python -m unittest discover -s tests -p test_tp9.py -k t11 -v
+python -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados/tp8
 ```
 
-### TP9-T12 Regresión
+Se esperan **20 leídos, 15 aceptados y 5 rechazados**, con una diferencia de conciliación de **0**. El piloto genera `resumen.json`, `consolidado.csv` y `rechazos.csv`. Al añadir `--distrito IQUITOS`, también exporta `consolidado_filtrado.csv` (7 grupos con 8 casos).
 
-Se volvió a ejecutar la suite completa con `python -m unittest discover -s tests -v`.
-En Linux con Python 3.12.14 pasaron 21 pruebas (11 del TP8 y 10 del TP9).
-Al comparar la salida de ambos commits con el CSV original de 30 filas,
-coincidieron los totales, la lista de rechazos, los cuatro grupos de seis
-y los 12 casos de MIRAFLORES.
+El código está en [`panviz_malaria/`](panviz_malaria/), las muestras en [`datos/`](datos/), las pruebas en [`tests/`](tests/) y la documentación técnica en [`docs/`](docs/).
 
-## Ejecución en Windows (PowerShell o CMD)
-
-Con **Python 3.10+** y **Git** instalados, ejecutar desde la terminal:
-
-```powershell
-git clone https://github.com/DelCastilloBrad/T8-CMMI-Panviz-Malaria.git
-cd T8-CMMI-Panviz-Malaria
-python -m unittest discover -s tests -v
-python -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados
-python -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados --distrito IQUITOS
-```
-
-Para revisar los resultados en **PowerShell**:
-
-```powershell
-Get-Content resultados/resumen.json
-Get-Content resultados/consolidado_filtrado.csv
-Get-Content resultados/rechazos.csv
-```
-
-En **CMD**, usar `type resultados\resumen.json`, `type resultados\consolidado_filtrado.csv` o `type resultados\rechazos.csv`.
-
-Se esperan **11 pruebas correctas (OK)** y, sin filtro, el resumen: **20 leídos, 15 aceptados, 5 rechazados, 14 grupos, suma 15 y diferencia 0**. Con `--distrito IQUITOS`, el resultado filtrado esperado es **7 grupos y suma 8**, sin alterar los totales generales. Si Windows no reconoce `python`, sustituirlo por `py`.
-
-## Ejecución en Pop!_OS / Linux
-```bash
-git clone https://github.com/DelCastilloBrad/T8-CMMI-Panviz-Malaria.git
-cd T8-CMMI-Panviz-Malaria
-python3 -m unittest discover -s tests -v
-python3 -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados
-python3 -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados --distrito IQUITOS
-cat resultados/resumen.json
-cat resultados/consolidado_filtrado.csv
-```
-
-
-## Guía completa de verificación (desde la carpeta del proyecto)
-
-**Importante:** la carpeta de pruebas se llama `tests` (plural). Ejecutar los comandos desde la raíz del repositorio, donde se encuentran `datos/`, `panviz_malaria/` y `tests/`. No se necesitan dependencias externas.
-
-### Paso 1. Ejecutar las pruebas automatizadas
-
-Linux / Pop!_OS:
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-Windows (PowerShell o CMD):
-```powershell
-python -m unittest discover -s tests -v
-```
-
-**Resultado esperado:** `Ran 11 tests` y `OK`. Incluye T01–T06, T07 (filtro CR01), validación del contrato y grupo etario. Estas son pruebas de desarrollo; E4 debe repetirlas y documentar su revisión independiente.
-
-### Paso 2. Ejecutar el flujo general sin filtro
-
-Linux:
-```bash
-python3 -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados
-```
-
-Windows:
-```powershell
-python -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados
-```
-
-**Resultado esperado:** `leidos=20`, `aceptados=15`, `rechazados=5`, `grupos=14`, `suma_consolidado=15` y `diferencia=0`.
-
-### Paso 3. Ejecutar CR01: filtro por distrito
-
-Linux:
-```bash
-python3 -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados --distrito IQUITOS
-```
-
-Windows:
-```powershell
-python -m panviz_malaria --entrada datos/malaria_20.csv --salida resultados --distrito IQUITOS
-```
-
-**Resultado esperado:** se conservan los totales generales y se añaden `filtro_distrito=IQUITOS`, `grupos_filtrados=7` y `suma_filtrada=8`.
-
-### Paso 4. Revisar las cuatro salidas
-
-Linux:
-```bash
-cat resultados/resumen.json
-cat resultados/consolidado_filtrado.csv
-cat resultados/consolidado.csv
-cat resultados/rechazos.csv
-```
-
-Windows PowerShell:
-```powershell
-Get-Content resultados/resumen.json
-Get-Content resultados/consolidado_filtrado.csv
-Get-Content resultados/consolidado.csv
-Get-Content resultados/rechazos.csv
-```
-
-Windows CMD:
-```cmd
-type resultados\resumen.json
-type resultados\consolidado_filtrado.csv
-type resultados\consolidado.csv
-type resultados\rechazos.csv
-```
-
-Comprobar que el consolidado filtrado contiene **7 filas de datos de IQUITOS, con suma de casos 8**; el consolidado general mantiene **14 grupos y suma 15**. Los rechazos deben corresponder a M-003 (duplicado), M-017 (distrito vacío), M-018 (fecha inválida), M-019 (establecimiento vacío) y M-020 (fecha inválida).
-
-### Paso 5. Comprobar la versión del repositorio
-
-```bash
-git status
-git log -1 --oneline
-```
-
-Para un clon actualizado sin cambios locales, `git status` debe mostrar el árbol de trabajo limpio. La salida de `git log` identifica el commit exacto utilizado en la evidencia.
-
-### Evidencias recomendadas para el informe
-
-Guardar capturas o registros de: **11 pruebas OK**, resumen general, resumen CR01 y CSV filtrado, CSV de rechazos y `git status` / `git log`. Adjuntar el commit revisado. No confundir estas pruebas de desarrollo con la aprobación de E1, la revisión independiente de E4 o la liberación formal B1/B2/v0.1.
-
-El informe T8 fija el oráculo de referencia: **20 leídos, 15 aceptados, 5 rechazados, 14 grupos, suma 15 y diferencia 0**. La semana ISO se deriva de `fecha_notificacion`, que es sintética, no de `semana_sintomas` del conjunto público.
-
-### Archivos
-- `panviz_malaria/`: importación, validación, consolidación, filtro CR01, exportación y CLI.
-- `datos/malaria_20.csv`: 20 casos sintéticos del piloto.
-- `tests/`: pruebas automatizadas de desarrollo (no reemplazan la revisión de E4).
-- `docs/diseno.md`, `docs/dar-01.md`: diseño y alternativas.
-- `docs/configuracion.md`, `docs/cr01.md`: control de versiones y cambio.
-- `docs/trazabilidad.md`, `docs/entrega-e4.md`: enlaces y traspaso a QA.
-- `resultados/`: archivos generados localmente; no versionados.
-
-### Estado de entregas
-**R01–R04:** implementación inicial lista para revisión independiente. **R05:** matriz actualizada, cierre pendiente. **CR01:** implementado técnicamente, T07 automatizada añadida; **aprobación E1 y revisión E4 pendientes de evidencia**. **B1, B2 y etiqueta v0.1:** pendientes de revisión y cierre del equipo.
-
-### Procedencia
-Los nombres de variables se inspiran parcialmente en [Vigilancia epidemiológica de malaria — MINSA](https://www.datosabiertos.gob.pe/dataset/vigilancia-epidemiol%C3%B3gica-de-malaria). Los 20 registros son ficticios. Los identificadores, establecimientos y fechas de notificación se incorporaron para el ejercicio académico.
-
-Curso Calidad de Software, UNSA — 2026.
+Calidad de Software, Escuela Profesional de Ingeniería de Sistemas, UNSA.
